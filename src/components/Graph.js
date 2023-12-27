@@ -8,14 +8,12 @@ const Graph = () => {
 
   const handleAddNode = () => {
     const { nodes } = networkRef.current.body.data;
-    const maxId = Math.max(...nodes.getIds(), 0);
-    let newNodeId = maxId + 1;
-    let label = `Test ${newNodeId}`;
-    while (nodes.get(newNodeId)) {
+    const existingIds = nodes.getIds();
+    let newNodeId = 1;
+    while (existingIds.includes(newNodeId)) {
       newNodeId++;
-      label = `Test ${newNodeId}`;
     }
-    nodes.add({ id: newNodeId, label });
+    nodes.add({ id: newNodeId, label: `Test ${newNodeId}` });
   };
   
 
@@ -102,7 +100,7 @@ const Graph = () => {
   
       if (nodeId !== undefined) {
         clickedNodes.push(nodeId);
-        clickedNodes = clickedNodes.slice(-2); // Keep only the last two selected nodes
+        clickedNodes = clickedNodes.slice(-2);
         setSelectedNodes(clickedNodes);
       }
   
@@ -144,7 +142,7 @@ const Graph = () => {
         onCreateRelationshipButtonDisabled={selectedNodes.length !== 2}
         onCreateAttribute={handleCreateAttribute} 
       />
-     <div id="network" style={{ width: '100%', height: '95.8vh' }} />
+     <div id="network" style={{ width: '100%', height: '79.5vh' }} />
     </div>
   );
 };
