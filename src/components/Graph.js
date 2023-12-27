@@ -34,11 +34,17 @@ const Graph = () => {
   };
 
   const handleCreateRelationship = () => {
+    const { nodes } = networkRef.current.body.data;
     if (selectedNodes.length === 2) {
-      const { edges } = networkRef.current.body.data;
-      const newEdgeId = edges.length > 0 ? Math.max(...edges.getIds()) + 1 : 1;
-      edges.add({ id: newEdgeId, from: selectedNodes[0], to: selectedNodes[1], label: '' });
-      setSelectedNodes([]);
+      const [from, to] = selectedNodes;
+      const fromNode = nodes.get(from);
+      const toNode = nodes.get(to);
+      if (fromNode && toNode) {
+        const { edges } = networkRef.current.body.data;
+        const newEdgeId = edges.length > 0 ? Math.max(...edges.getIds()) + 1 : 1;
+        edges.add({ id: newEdgeId, from, to, label: '' });
+        setSelectedNodes([]);
+      }
     }
   };
 
@@ -66,7 +72,23 @@ const Graph = () => {
   useEffect(() => {
     const container = document.getElementById('network');
     const data = { nodes: new DataSet(), edges: new DataSet() };
-    const options = {};
+    const options = {
+      physics: {
+        enabled: true,
+        stabilization: {
+          enabled: true,
+          iterations: 1000,
+        },
+        barnesHut: {
+          gravitationalConstant: -10000,
+          centralGravity: 0.5,
+          springLength: 150,
+          springConstant: 0.08,
+          damping: 0.5,
+          avoidOverlap: 0.5,
+        },
+      },
+    };
 
     const network = new Network(container, data, options);
     networkRef.current = network;
@@ -93,9 +115,9 @@ const Graph = () => {
         onAddNode={handleAddNode}
         onDeleteNode={handleDeleteNode}
         onDeleteButtonDisabled={selectedNodes.length === 0}
+        onCreateAttribute={handleCreateAttribute}
         onCreateRelationship={handleCreateRelationship}
         onCreateRelationshipButtonDisabled={selectedNodes.length !== 2}
-        onCreateAttribute={handleCreateAttribute}
       />
      <div id="network" style={{ width: '100%', height: '95.8vh' }} />
     </div>
