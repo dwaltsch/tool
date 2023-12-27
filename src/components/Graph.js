@@ -7,12 +7,11 @@ const Graph = () => {
   const [selectedNodes, setSelectedNodes] = useState([]);
 
   const handleAddNode = () => {
-  const { nodes } = networkRef.current.body.data;
-  const nodeIds = nodes.getIds();
-  const maxId = nodeIds.length > 0 ? Math.max(...nodeIds) : 0;
-  const newNodeId = maxId + 1;
-  nodes.add({ id: newNodeId, label: `Test ${newNodeId}` });
-};
+    const { nodes } = networkRef.current.body.data;
+    const maxId = Math.max(...nodes.getIds());
+    const newNodeId = maxId !== -Infinity ? maxId + 1 : 1;
+    nodes.add({ id: newNodeId, label: `Test ${newNodeId}` });
+  };
 
   const handleDoubleClick = (event) => {
     const nodeId = event.nodes[0];
@@ -34,41 +33,14 @@ const Graph = () => {
   };
 
   const handleCreateRelationship = () => {
-    const { nodes } = networkRef.current.body.data;
     if (selectedNodes.length === 2) {
-      const [from, to] = selectedNodes;
-      const fromNode = nodes.get(from);
-      const toNode = nodes.get(to);
-      if (fromNode && toNode) {
-        const { edges } = networkRef.current.body.data;
-        const newEdgeId = edges.length > 0 ? Math.max(...edges.getIds()) + 1 : 1;
-        edges.add({ id: newEdgeId, from, to, label: '' });
-        setSelectedNodes([]);
-      }
-    }
-  };
-
-  const handleCreateAttribute = () => {
-    const { nodes, edges } = networkRef.current.body.data;
-  
-    if (selectedNodes.length === 1) {
-      const nodeIds = nodes.getIds().map(String);
-      const attributeIds = nodeIds.filter(id => id.startsWith('attribute'));
-  
-      let maxAttributeId = 0;
-      if (attributeIds.length > 0) {
-        maxAttributeId = Math.max(...attributeIds.map(id => parseInt(id.replace('attribute', ''), 10)));
-      }
-  
-      const entityId = selectedNodes[0];
-      const newAttributeNodeId = `attribute${maxAttributeId + 1}`;
-  
-      nodes.add({ id: newAttributeNodeId, label: 'Attribute', shape: 'box' });
-      edges.add({ from: entityId, to: newAttributeNodeId });
+      const { edges } = networkRef.current.body.data;
+      const newEdgeId = edges.length > 0 ? Math.max(...edges.getIds()) + 1 : 1;
+      edges.add({ id: newEdgeId, from: selectedNodes[0], to: selectedNodes[1], label: '' });
+      setSelectedNodes([]); // Reset selected nodes after creating the relationship
     }
   };
   
-
   useEffect(() => {
     const container = document.getElementById('network');
     const data = { nodes: new DataSet(), edges: new DataSet() };
@@ -89,33 +61,55 @@ const Graph = () => {
         },
       },
     };
-
+  
     const network = new Network(container, data, options);
     networkRef.current = network;
-
+  
+    let clickedNodes = [];
+    let clickedEdge = null;
+  
     network.on('click', (params) => {
       const nodeId = params.nodes[0];
+      const edgeId = params.edges[0];
+  
       if (nodeId !== undefined) {
-        setSelectedNodes([nodeId]);
+        clickedNodes.push(nodeId);
+        clickedNodes = clickedNodes.slice(-2); // Keep only the last two selected nodes
+        setSelectedNodes(clickedNodes);
+      }
+  
+      if (edgeId !== undefined) {
+        clickedEdge = edgeId;
       }
     });
-
-    network.on('doubleClick', handleDoubleClick);
-
+  
+    network.on('doubleClick', (params) => {
+      const edgeId = params.edges[0];
+  
+      if (edgeId !== undefined && edgeId === clickedEdge) {
+        const { edges } = networkRef.current.body.data;
+        const currentLabel = edges.get(edgeId).label;
+        const newLabel = prompt('Enter label for the relationship:', currentLabel || '');
+  
+        if (newLabel !== null) {
+          edges.update({ id: edgeId, label: newLabel });
+        }
+      }
+    });
+  
     return () => {
       network.off('click');
-      network.off('doubleClick', handleDoubleClick);
+      network.off('doubleClick');
       network.destroy();
     };
   }, []);
-
+  
   return (
     <div>
       <Menu
         onAddNode={handleAddNode}
         onDeleteNode={handleDeleteNode}
         onDeleteButtonDisabled={selectedNodes.length === 0}
-        onCreateAttribute={handleCreateAttribute}
         onCreateRelationship={handleCreateRelationship}
         onCreateRelationshipButtonDisabled={selectedNodes.length !== 2}
       />
