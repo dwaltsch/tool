@@ -8,10 +8,16 @@ const Graph = () => {
 
   const handleAddNode = () => {
     const { nodes } = networkRef.current.body.data;
-    const maxId = Math.max(...nodes.getIds());
-    const newNodeId = maxId !== -Infinity ? maxId + 1 : 1;
-    nodes.add({ id: newNodeId, label: `Test ${newNodeId}` });
+    const maxId = Math.max(...nodes.getIds(), 0);
+    let newNodeId = maxId + 1;
+    let label = `Test ${newNodeId}`;
+    while (nodes.get(newNodeId)) {
+      newNodeId++;
+      label = `Test ${newNodeId}`;
+    }
+    nodes.add({ id: newNodeId, label });
   };
+  
 
   const handleDoubleClick = (event) => {
     const nodeId = event.nodes[0];
@@ -40,6 +46,28 @@ const Graph = () => {
       setSelectedNodes([]); // Reset selected nodes after creating the relationship
     }
   };
+
+  const handleCreateAttribute = () => {
+    const { nodes, edges } = networkRef.current.body.data;
+  
+    if (selectedNodes.length === 1) {
+      const entityId = selectedNodes[0];
+      const attributeIds = nodes
+        .getIds()
+        .filter((id) => typeof id === 'string' && id.startsWith('attribute'));
+  
+      const maxAttributeId =
+        attributeIds.length > 0
+          ? Math.max(...attributeIds.map((id) => parseInt(id.replace('attribute', ''), 10)))
+          : 0;
+  
+      const newAttributeNodeId = `attribute${maxAttributeId + 1}`;
+  
+      nodes.add({ id: newAttributeNodeId, label: 'Attribute', shape: 'box' });
+      edges.add({ from: entityId, to: newAttributeNodeId });
+    }
+  };
+  
   
   useEffect(() => {
     const container = document.getElementById('network');
@@ -97,9 +125,11 @@ const Graph = () => {
       }
     });
   
+    network.on('doubleClick', handleDoubleClick);
+
     return () => {
       network.off('click');
-      network.off('doubleClick');
+      network.off('doubleClick', handleDoubleClick);
       network.destroy();
     };
   }, []);
@@ -112,6 +142,7 @@ const Graph = () => {
         onDeleteButtonDisabled={selectedNodes.length === 0}
         onCreateRelationship={handleCreateRelationship}
         onCreateRelationshipButtonDisabled={selectedNodes.length !== 2}
+        onCreateAttribute={handleCreateAttribute} 
       />
      <div id="network" style={{ width: '100%', height: '95.8vh' }} />
     </div>
